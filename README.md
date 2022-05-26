@@ -5,8 +5,8 @@
 [![Docker Stars](https://img.shields.io/docker/stars/linuxcontainers/mariadb.svg?style=for-the-badge&logo=docker)](https://hub.docker.com/r/linuxcontainers/mariadb/)
 [![Docker Image Size (tag)](https://img.shields.io/docker/image-size/linuxcontainers/mariadb?logo=docker&style=for-the-badge)](https://hub.docker.com/r/linuxcontainers/mariadb/)
 
-[![Debian Version](https://img.shields.io/badge/Debian%20version-v11.0.0-green.svg?style=for-the-badge)](https://debian.org/)
-[![MariaDB Version](https://img.shields.io/badge/MariaDB%20version-v10.7.3-green.svg?style=for-the-badge)](https://mariadb.org/)
+[![Debian Version](https://img.shields.io/badge/Debian%20version-v11.3.0-green.svg?style=for-the-badge)](https://debian.org/)
+[![MariaDB Version](https://img.shields.io/badge/MariaDB%20version-v10.7.4-green.svg?style=for-the-badge)](https://mariadb.org/)
 
 This Docker image [(linuxcontainers/mariadb)](https://hub.docker.com/r/linuxcontainers/mariadb/) is based on the minimal [Debian Linux](https://mariadb.org/).
 
@@ -15,12 +15,12 @@ This Docker image [(linuxcontainers/mariadb)](https://hub.docker.com/r/linuxcont
 
 This docker image is the base Debian 10 Slim Linux for MariaDB 10.5.x and Debian 11 Slim for MariaDB 10.6.x. For more info on versions & support see [Releases](https://wiki.debian.org/DebianStable)
 
-##### MariaDB Version 10.5.13
+##### MariaDB Version 10.7.4
 
 It is an evolution of MariaDB 10.3 with several entirely new features not found anywhere else and with backported and reimplemented features from MySQL.
 
 ----
-##### MariaDB Version 10.7.3
+##### MariaDB Version 10.7.4
 
 MariaDB 10.7 is the current stable series of MariaDB. It is an evolution of MariaDB 10.3 with several entirely new features not found anywhere else and with backported and reimplemented features from MySQL.
 
