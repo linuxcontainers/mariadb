@@ -12,17 +12,14 @@ This Docker image [(linuxcontainers/mariadb)](https://hub.docker.com/r/linuxcont
 
 ##### Debian 10 - Buster (Released May 9, 2020)
 ##### Debian 11 - Bullseye (Released August 14, 2021)
+##### Debian 12 - Bookworm (Released June 10, 2023)
 
-This docker image is the base Debian 11 Slim Linux for MariaDB 10.5.x and Debian 11 Slim for MariaDB 10.6.x. For more info on versions & support see [Releases](https://wiki.debian.org/DebianStable)
 
-##### MariaDB Version 10.10.2
+This docker image is the base Debian 12 Slim Linux for MariaDB 11.5.x and Debian 12 Slim. For more info on versions & support see [Releases](https://wiki.debian.org/DebianStable)
 
-It is an evolution of MariaDB 10.3 with several entirely new features not found anywhere else and with backported and reimplemented features from MySQL.
+##### MariaDB Version 11.5
 
-----
-##### MariaDB Version 10.10.2
-
-MariaDB 10.7 is the current stable series of MariaDB. It is an evolution of MariaDB 10.3 with several entirely new features not found anywhere else and with backported and reimplemented features from MySQL.
+It is an evolution of MariaDB 11.5 with several entirely new features not found anywhere else and with backported and reimplemented features from MySQL.
 
 ----
 

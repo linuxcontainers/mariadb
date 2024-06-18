@@ -22,6 +22,7 @@
 # innodb_initialized        USAGE
 # innodb_buffer_pool_loaded USAGE
 # galera_online             USAGE
+# galera_ready              USAGE
 # replication               REPLICATION_CLIENT (<10.5)or REPLICA MONITOR (10.5+)
 # mariadbupgrade            none, however unix user permissions on datadir
 #
@@ -55,6 +56,8 @@ _process_sql()
 connect()
 {
 	set +e +o pipefail
+	# (on second extra_file)
+	# shellcheck disable=SC2086
 	mariadb ${nodefaults:+--no-defaults} \
 		${def['file']:+--defaults-file=${def['file']}} \
 		${def['extra_file']:+--defaults-extra-file=${def['extra_file']}}  \
@@ -80,7 +83,7 @@ connect()
 innodb_initialized()
 {
 	local s
-	s=$(_process_sql --skip-column-names -e 'select 1 from information_schema.ENGINES WHERE engine="innodb" AND support in ("YES", "DEFAULT", "ENABLED")')
+	s=$(_process_sql --skip-column-names -e "select 1 from information_schema.ENGINES WHERE engine='innodb' AND support in ('YES', 'DEFAULT', 'ENABLED')")
 	[ "$s" == 1 ]
 }
 
@@ -92,7 +95,7 @@ innodb_initialized()
 innodb_buffer_pool_loaded()
 {
 	local s
-	s=$(_process_sql --skip-column-names -e 'select VARIABLE_VALUE from information_schema.GLOBAL_STATUS WHERE VARIABLE_NAME="Innodb_buffer_pool_load_status"')
+	s=$(_process_sql --skip-column-names -e "select VARIABLE_VALUE from information_schema.GLOBAL_STATUS WHERE VARIABLE_NAME='Innodb_buffer_pool_load_status'")
 	if [[ $s =~ 'load completed' ]]; then
 		return 0
 	fi
@@ -105,10 +108,23 @@ innodb_buffer_pool_loaded()
 galera_online()
 {
 	local s
-	s=$(_process_sql --skip-column-names -e 'select VARIABLE_VALUE from information_schema.GLOBAL_STATUS WHERE VARIABLE_NAME="WSREP_LOCAL_STATE"')
+	s=$(_process_sql --skip-column-names -e "select VARIABLE_VALUE from information_schema.GLOBAL_STATUS WHERE VARIABLE_NAME='WSREP_LOCAL_STATE'")
 	# 4 from https://galeracluster.com/library/documentation/node-states.html#node-state-changes
 	# not https://xkcd.com/221/
 	if [[ $s -eq 4 ]]; then
+		return 0
+	fi
+	return 1
+}
+
+# GALERA_READY
+#
+# Tests that the Galera provider is ready.
+galera_ready()
+{
+	local s
+	s=$(_process_sql --skip-column-names -e "select VARIABLE_VALUE from information_schema.GLOBAL_STATUS WHERE VARIABLE_NAME='WSREP_READY'")
+	if [ "$s" = "ON" ]; then
 		return 0
 	fi
 	return 1
@@ -129,7 +145,7 @@ replication()
 	# SHOW REPLICA available 10.5+
 	# https://github.com/koalaman/shellcheck/issues/2383
 	# shellcheck disable=SC2016,SC2026
-	_process_sql -e "show ${repl['all']:+all} slave${repl['all']:+s} ${repl['name']:+'${repl['name']}'} status\G" | \
+	_process_sql -e "SHOW ${repl['all']:+all} REPLICA${repl['all']:+S} ${repl['name']:+'${repl['name']}'} STATUS\G" | \
 		{
 		# required for trim of leading space.
 		shopt -s extglob
@@ -176,16 +192,18 @@ replication()
 		[ $? -gt 128 ] && return 1
 		return 0
        }
+       # reachable in command not found(?)
+       # shellcheck disable=SC2317
        return $?
 }
 
 # mariadbupgrade
 #
-# Test the lock on the file /var/lib/mysql_upgrade_info
+# Test the lock on the file $datadir/mariadb_upgrade_info
 # https://jira.mariadb.org/browse/MDEV-27068
 mariadbupgrade()
 {
-	local f="$datadir/mysql_upgrade_info"
+	local f="$datadir/mariadb_upgrade_info"
 	if [ -r "$f" ]; then
 		flock --exclusive --nonblock -n 9 9<"$f"
 		return $?
@@ -201,13 +219,16 @@ if [ $# -eq 0 ]; then
 	exit 1
 fi
 
-# Marks the end of mariadb -> mariadb name changes in 10.6+
 #ENDOFSUBSTITUTIONS
+# Marks the end of mysql -> mariadb name changes in 10.6+
 # Global variables used by tests
 declare -A repl
 declare -A def
 nodefaults=
 datadir=/var/lib/mysql
+if [ -f $datadir/.my-healthcheck.cnf ]; then
+	def['extra_file']=$datadir/.my-healthcheck.cnf
+fi
 
 _repl_param_check()
 {
@@ -222,7 +243,7 @@ _repl_param_check()
 		all)
 			if [ -n "${repl['name']}" ]; then
 				unset 'repl[name]'
-				echo "Option --replication_all incompatible with specied source --replication_name, clearing replication_name" >&2
+				echo "Option --replication_all incompatible with specified source --replication_name, clearing replication_name" >&2
 			fi
 			;;
 		name)
@@ -288,7 +309,7 @@ while [ $# -gt 0 ]; do
 			datadir=${1}
 			;;
 		--no-defaults)
-			unset def
+			def=()
 			nodefaults=1
 			;;
 		--defaults-file=*|--defaults-extra-file=*|--defaults-group-suffix=*)

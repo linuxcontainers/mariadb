@@ -1,4 +1,4 @@
-FROM linuxcontainers/debian-slim:11
+FROM linuxcontainers/debian-slim:12.5
 
 LABEL maintainer="Peter <peter@linuxcontainers.dev>" \
     org.opencontainers.image.title="mariadb" \
@@ -9,12 +9,12 @@ LABEL maintainer="Peter <peter@linuxcontainers.dev>" \
     org.opencontainers.image.source="https://github.com/linuxcontainers/mariadb" 
 
 # add our user and group first to make sure their IDs get assigned consistently, regardless of whatever dependencies get added
-RUN groupadd -r mysql && useradd -r -g mysql mysql
+RUN groupadd -r mysql && useradd -r -g mysql mysql --home-dir /var/lib/mysql
 
 # add gosu for easy step-down from root
 # https://github.com/tianon/gosu/releases
 # gosu key is B42F6819007F00F88E364FD4036A9C25BF357DD4
-ENV GOSU_VERSION 1.14
+ENV GOSU_VERSION 1.17
 
 ARG GPG_KEYS=177F4010FE56CA3336300305F1656F24C74CD1D8
 # pub   rsa4096 2016-03-30 [SC]
@@ -73,16 +73,28 @@ RUN mkdir /docker-entrypoint-initdb.d
 # default locales in base image (https://github.com/docker-library/docs/blob/135b79cc8093ab02e55debb61fdb079ab2dbce87/ubuntu/README.md#locales)
 ENV LANG C.UTF-8
 
+# OCI annotations to image
+LABEL org.opencontainers.image.authors="MariaDB Community" \
+      org.opencontainers.image.title="MariaDB Database" \
+      org.opencontainers.image.description="MariaDB Database for relational SQL" \
+      org.opencontainers.image.documentation="https://hub.docker.com/_/mariadb/" \
+      org.opencontainers.image.base.name="docker.io/library/ubuntu:noble" \
+      org.opencontainers.image.licenses="GPL-2.0" \
+      org.opencontainers.image.source="https://github.com/MariaDB/mariadb-docker" \
+      org.opencontainers.image.vendor="MariaDB Community" \
+      org.opencontainers.image.version="11.5.1" \
+      org.opencontainers.image.url="https://github.com/MariaDB/mariadb-docker"
+
 # bashbrew-architectures: amd64 arm64v8 ppc64le s390x
-ARG MARIADB_MAJOR=10.10
+ARG MARIADB_MAJOR=11.5
 ENV MARIADB_MAJOR $MARIADB_MAJOR
-ARG MARIADB_VERSION=1:10.10.2+maria~deb11
+ARG MARIADB_VERSION=1:11.5.1+maria~deb12
 ENV MARIADB_VERSION $MARIADB_VERSION
 # release-status:Stable
 # (https://downloads.mariadb.org/rest-api/mariadb/)
 
 # Allowing overriding of REPOSITORY, a URL that includes suite and component for testing and Enterprise Versions
-ARG REPOSITORY="http://archive.mariadb.org/mariadb-10.10.2/repo/debian/ bullseye main"
+ARG REPOSITORY="https://archive.mariadb.org/mariadb-11.5/repo/debian/ bookworm main"
 
 RUN set -e;\
 	echo "deb ${REPOSITORY}" > /etc/apt/sources.list.d/mariadb.list; \
@@ -99,21 +111,22 @@ RUN set -e;\
 # hadolint ignore=DL3015
 RUN set -ex; \
 	{ \
-		echo "mariadb-server-$MARIADB_MAJOR" mysql-server/root_password password 'unused'; \
-		echo "mariadb-server-$MARIADB_MAJOR" mysql-server/root_password_again password 'unused'; \
+		echo "mariadb-server" mysql-server/root_password password 'unused'; \
+		echo "mariadb-server" mysql-server/root_password_again password 'unused'; \
 	} | debconf-set-selections; \
 	apt-get update; \
+# postinst script creates a datadir, so avoid creating it by faking its existance.
+	mkdir -p /var/lib/mysql/mysql ; touch /var/lib/mysql/mysql/user.frm ; \
 # mariadb-backup is installed at the same time so that `mysql-common` is only installed once from just mariadb repos
-	apt-get install -y \
-		"mariadb-server=$MARIADB_VERSION" mariadb-backup socat \
+	apt-get install -y --no-install-recommends mariadb-server="$MARIADB_VERSION" mariadb-backup socat \
 	; \
 	rm -rf /var/lib/apt/lists/*; \
 # purge and re-create /var/lib/mysql with appropriate ownership
-	rm -rf /var/lib/mysql; \
-	mkdir -p /var/lib/mysql /var/run/mysqld; \
-	chown -R mysql:mysql /var/lib/mysql /var/run/mysqld; \
-# ensure that /var/run/mysqld (used for socket and lock files) is writable regardless of the UID our mysqld instance ends up having at runtime
-	chmod 777 /var/run/mysqld; \
+	rm -rf /var/lib/mysql /etc/mysql/mariadb.conf.d/50-mysqld_safe.cnf; \
+	mkdir -p /var/lib/mysql /run/mysqld; \
+	chown -R mysql:mysql /var/lib/mysql /run/mysqld; \
+# ensure that /run/mysqld (used for socket and lock files) is writable regardless of the UID our mysqld instance ends up having at runtime
+	chmod 1777 /run/mysqld; \
 # comment out a few problematic configuration values
 	find /etc/mysql/ -name '*.cnf' -print0 \
 		| xargs -0 grep -lZE '^(bind-address|log|user\s)' \
@@ -125,6 +138,7 @@ RUN set -ex; \
 # 10.5+
 		sed -i -e '/includedir/ {N;s/\(.*\)\n\(.*\)/\n\2\n\1/}' /etc/mysql/mariadb.cnf; \
 	fi
+
 
 VOLUME /var/lib/mysql
 
