@@ -17,14 +17,14 @@ jobs:
     permissions:
       contents: read
       packages: write
-    
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-     - name: Prepare
+      - name: Prepare
         id: prep
         run: |
           DOCKERHUB_IMAGE=${{ env.IMAGE_NAME }}
@@ -34,9 +34,9 @@ jobs:
           MAJOR=${VERSION%%.*}
           TAGS="${DOCKERHUB_IMAGE}:${MAJOR},${DOCKERHUB_IMAGE}:${MINOR}"
           TAGS="${TAGS},${DOCKERHUB_IMAGE}:${VERSION},${DOCKERHUB_IMAGE}:latest"
-          echo "tags=${TAGS}" >> $GITHUB_OUTPUT
-          echo "version=${VERSION}" >> $GITHUB_OUTPUT
-          echo "dockerhub_image=${DOCKERHUB_IMAGE}" >> $GITHUB_OUTPUT
+          echo ::set-output name=tags::${TAGS}
+          echo ::set-output name=version::${VERSION}
+          echo ::set-output name=dockerhub_image::${DOCKERHUB_IMAGE}
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -60,7 +60,7 @@ jobs:
           context: .
           file: ./Dockerfile
           push: ${{ github.event_name != 'pull_request' }}
-          platforms: linux/amd64,linux/arm64
+          platforms: linux/amd64,linux/arm64,linux/386
           tags: ${{ steps.prep.outputs.tags }}
           labels: org.opencontainers.image.version=${{ steps.prep.outputs.version }}
 
@@ -71,4 +71,3 @@ jobs:
           password: ${{ secrets.DOCKERHUB_TOKEN }}
           repository: ${{ github.repository }}
           short-description: Linux Container
-
