@@ -34,9 +34,9 @@ jobs:
           MAJOR=${VERSION%%.*}
           TAGS="${DOCKERHUB_IMAGE}:${MAJOR},${DOCKERHUB_IMAGE}:${MINOR}"
           TAGS="${TAGS},${DOCKERHUB_IMAGE}:${VERSION},${DOCKERHUB_IMAGE}:latest"
-          echo ::set-output name=tags::${TAGS}
-          echo ::set-output name=version::${VERSION}
-          echo ::set-output name=dockerhub_image::${DOCKERHUB_IMAGE}
+          echo "tags=${TAGS}" >> $GITHUB_OUTPUT
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+          echo "dockerhub_image=${DOCKERHUB_IMAGE}" >> $GITHUB_OUTPUT
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -60,7 +60,7 @@ jobs:
           context: .
           file: ./Dockerfile
           push: ${{ github.event_name != 'pull_request' }}
-          platforms: linux/amd64,linux/arm64,linux/386
+          platforms: linux/amd64,linux/arm64
           tags: ${{ steps.prep.outputs.tags }}
           labels: org.opencontainers.image.version=${{ steps.prep.outputs.version }}
 
